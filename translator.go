@@ -413,49 +413,68 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
 
         function drawWaveform() {
             const canvas = document.getElementById('waveform');
+            if (!canvas) return;
+
             const ctx = canvas.getContext('2d');
-            const width = canvas.width = canvas.offsetWidth;
-            const height = canvas.height = canvas.offsetHeight;
+
+            // Set canvas size properly
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = 80;
 
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
 
             function draw() {
+                if (!analyser) return;
+
                 animationId = requestAnimationFrame(draw);
                 analyser.getByteFrequencyData(dataArray);
 
+                // Clear canvas
                 ctx.fillStyle = '#f0f0f0';
-                ctx.fillRect(0, 0, width, height);
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                const barWidth = (width / bufferLength) * 2.5;
+                // Draw bars
+                const barWidth = (canvas.width / bufferLength) * 2.5;
                 let x = 0;
 
                 for (let i = 0; i < bufferLength; i++) {
-                    const barHeight = (dataArray[i] / 255) * height * 0.8;
-                    const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height);
+                    const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
+
+                    // Create gradient for each bar
+                    const gradient = ctx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
                     gradient.addColorStop(0, '#4CAF50');
                     gradient.addColorStop(1, '#81C784');
 
                     ctx.fillStyle = gradient;
-                    ctx.fillRect(x, height - barHeight, barWidth, barHeight);
-                    x += barWidth + 1;
+                    ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+                    x += barWidth;
                 }
             }
 
             draw();
         }
 
-        function playAudio() {
+        async function playAudio() {
             setupAudioContext();
 
             const audio = document.getElementById('audio');
 
             // Only create source once
             if (!isAudioConnected) {
-                audioSource = audioContext.createMediaElementSource(audio);
-                audioSource.connect(analyser);
-                analyser.connect(audioContext.destination);
-                isAudioConnected = true;
+                try {
+                    audioSource = audioContext.createMediaElementSource(audio);
+                    audioSource.connect(analyser);
+                    analyser.connect(audioContext.destination);
+                    isAudioConnected = true;
+                } catch (e) {
+                    console.error('Failed to create audio source:', e);
+                    // If fails, just play without waveform
+                    audio.src = audioUrl;
+                    await audio.play();
+                    return;
+                }
             }
 
             // Stop previous animation
@@ -463,13 +482,23 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                 cancelAnimationFrame(animationId);
             }
 
+            // Resume audio context if suspended
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
             audio.src = audioUrl;
-            audio.play();
+            await audio.play();
             drawWaveform();
 
             audio.onended = () => {
                 if (animationId) {
                     cancelAnimationFrame(animationId);
+                    // Clear canvas
+                    const canvas = document.getElementById('waveform');
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
             };
         }
