@@ -205,6 +205,7 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chinese Translator</title>
+    <script src="https://unpkg.com/wavesurfer.js@7"></script>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -343,6 +344,7 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             <h3>Translation:</h3>
             <p id="translation"></p>
             <p id="pinyin"></p>
+            <div id="waveform"></div>
             <button id="playBtn">🔊 Play Pronunciation</button>
             <button id="toggleWordMode">📖 Word-by-Word Mode</button>
             <div id="wordByWord" class="word-by-word" style="display:none;">
@@ -358,11 +360,25 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
     <script>
         let audioUrl = '';
         let translationData = null;
+        let wavesurfer = null;
 
         // Word-by-word mode
         let chineseChars = [];
         let pinyinWords = [];
         let currentWordIndex = 0;
+
+        // Initialize WaveSurfer
+        wavesurfer = WaveSurfer.create({
+            container: '#waveform',
+            waveColor: '#4CAF50',
+            progressColor: '#2E7D32',
+            cursorColor: '#1B5E20',
+            barWidth: 3,
+            barRadius: 3,
+            cursorWidth: 1,
+            height: 80,
+            barGap: 2
+        });
 
         async function translate() {
             const text = document.getElementById('input').value;
@@ -381,6 +397,9 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             document.getElementById('result').style.display = 'block';
             audioUrl = data.audioUrl;
 
+            // Load audio into WaveSurfer
+            wavesurfer.load(audioUrl);
+
             // Prepare word-by-word data
             chineseChars = data.translation.split('');
             pinyinWords = data.pinyin ? data.pinyin.split(' ') : [];
@@ -391,9 +410,7 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
         }
 
         async function playAudio() {
-            const audio = document.getElementById('audio');
-            audio.src = audioUrl;
-            await audio.play();
+            wavesurfer.play();
         }
 
         function toggleWordMode() {
