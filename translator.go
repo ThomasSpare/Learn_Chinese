@@ -518,9 +518,12 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                 // Draw bars
                 const barWidth = (canvas.width / bufferLength) * 2.5;
                 let x = 0;
+                let hasData = false;
 
                 for (let i = 0; i < bufferLength; i++) {
-                    const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
+                    const barHeight = Math.max((dataArray[i] / 255) * canvas.height * 0.8, 5); // Minimum 5px height
+
+                    if (dataArray[i] > 0) hasData = true;
 
                     // Create gradient for each bar
                     const gradient = ctx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
@@ -530,6 +533,13 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                     ctx.fillStyle = gradient;
                     ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
                     x += barWidth;
+                }
+
+                // Debug: show if we're getting data
+                if (!hasData) {
+                    ctx.fillStyle = 'red';
+                    ctx.font = '12px Arial';
+                    ctx.fillText('No audio data', 10, 20);
                 }
             }
 
