@@ -564,29 +564,39 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                 debug.textContent = 'AudioContext resumed (double-resume)';
             }
 
-            // Try to connect Web Audio API (with fallback)
+            // Stop previous animation
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+
+            // Try to connect Web Audio API on first play only
             if (!isAudioConnected && audioContext) {
                 try {
+                    // CRITICAL: Must have src set or loaded before creating source on iOS
+                    if (!audio.src) {
+                        audio.src = audioUrl;
+                        audio.load();
+                        // Wait a tiny bit for iOS to register the audio
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                    }
+
                     audioSource = audioContext.createMediaElementSource(audio);
                     audioSource.connect(analyser);
                     analyser.connect(audioContext.destination);
                     isAudioConnected = true;
                     fallback.style.display = 'none'; // Hide CSS fallback
                     debug.textContent = '✓ Web Audio API connected!';
+                    console.log('Media source created and connected');
                 } catch (e) {
                     debug.textContent = '⚠️ Using CSS fallback: ' + e.message;
+                    console.error('Web Audio connection failed:', e);
                     // Ensure fallback shows
                     fallback.style.display = 'flex';
                     fallback.classList.add('active');
                 }
             }
 
-            // Stop previous animation
-            if (animationId) {
-                cancelAnimationFrame(animationId);
-            }
-
-            // Play audio
+            // Set audio source for this play
             audio.src = audioUrl;
 
             try {
