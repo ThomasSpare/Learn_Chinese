@@ -475,20 +475,38 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
 
         function drawWaveform() {
             const canvas = document.getElementById('waveform');
-            if (!canvas) return;
+            if (!canvas) {
+                console.error('Canvas not found');
+                return;
+            }
 
             const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error('Canvas context is null');
+                return;
+            }
 
             // Set canvas size properly
             const rect = canvas.getBoundingClientRect();
+            if (rect.width === 0) {
+                console.error('Canvas has zero width');
+                return;
+            }
             canvas.width = rect.width;
             canvas.height = 80;
+
+            if (!analyser) {
+                console.error('Analyser is null');
+                return;
+            }
 
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
 
+            console.log('Starting waveform draw loop');
+
             function draw() {
-                if (!analyser) return;
+                if (!analyser || !ctx || !canvas) return;
 
                 animationId = requestAnimationFrame(draw);
                 analyser.getByteFrequencyData(dataArray);
