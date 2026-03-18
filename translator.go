@@ -303,38 +303,45 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             background: #f0f0f0;
             border-radius: 8px;
             display: none;
-            align-items: flex-end;
-            justify-content: space-around;
-            padding: 10px;
-            gap: 3px;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
         }
         .waveform-fallback.active {
             display: flex;
         }
-        .bar {
-            width: 4px;
-            background: linear-gradient(to top, #81C784, #4CAF50);
-            border-radius: 2px;
-            animation: wave 0.5s ease-in-out infinite;
+        .wave-line {
+            width: 90%;
+            height: 3px;
+            background: #4CAF50;
+            position: relative;
+            animation: vibrate 0.1s ease-in-out infinite;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
         }
-        .bar:nth-child(1) { animation-delay: 0s; height: 20%; }
-        .bar:nth-child(2) { animation-delay: 0.1s; height: 40%; }
-        .bar:nth-child(3) { animation-delay: 0.2s; height: 60%; }
-        .bar:nth-child(4) { animation-delay: 0.3s; height: 80%; }
-        .bar:nth-child(5) { animation-delay: 0.4s; height: 70%; }
-        .bar:nth-child(6) { animation-delay: 0.5s; height: 50%; }
-        .bar:nth-child(7) { animation-delay: 0.6s; height: 30%; }
-        .bar:nth-child(8) { animation-delay: 0.7s; height: 60%; }
-        .bar:nth-child(9) { animation-delay: 0.8s; height: 40%; }
-        .bar:nth-child(10) { animation-delay: 0.9s; height: 20%; }
-        .bar:nth-child(11) { animation-delay: 1s; height: 50%; }
-        .bar:nth-child(12) { animation-delay: 1.1s; height: 70%; }
-        .bar:nth-child(13) { animation-delay: 1.2s; height: 60%; }
-        .bar:nth-child(14) { animation-delay: 1.3s; height: 40%; }
-        .bar:nth-child(15) { animation-delay: 1.4s; height: 30%; }
-        @keyframes wave {
-            0%, 100% { transform: scaleY(0.5); }
-            50% { transform: scaleY(1.2); }
+        .wave-line::before,
+        .wave-line::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 3px;
+            background: #4CAF50;
+            opacity: 0.6;
+        }
+        .wave-line::before {
+            top: -6px;
+            animation: vibrate 0.15s ease-in-out infinite;
+        }
+        .wave-line::after {
+            top: 6px;
+            animation: vibrate 0.12s ease-in-out infinite reverse;
+        }
+        @keyframes vibrate {
+            0% { transform: translateY(0) scaleY(1); }
+            25% { transform: translateY(-3px) scaleY(1.2); }
+            50% { transform: translateY(0) scaleY(0.8); }
+            75% { transform: translateY(3px) scaleY(1.2); }
+            100% { transform: translateY(0) scaleY(1); }
         }
         .word-by-word {
             margin-top: 15px;
@@ -393,21 +400,7 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             <p id="pinyin"></p>
             <canvas id="waveform"></canvas>
             <div id="waveformFallback" class="waveform-fallback">
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
+                <div class="wave-line"></div>
             </div>
             <button id="playBtn">🔊 Play Pronunciation</button>
             <button id="toggleWordMode">📖 Word-by-Word Mode</button>
