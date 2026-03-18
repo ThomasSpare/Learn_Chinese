@@ -404,6 +404,7 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             <div id="waveformFallback" class="waveform-fallback">
                 <div class="wave-line"></div>
             </div>
+            <div id="debugMsg" style="font-size: 12px; color: #999; margin: 10px 0;"></div>
             <button id="playBtn">🔊 Play Pronunciation</button>
             <button id="toggleWordMode">📖 Word-by-Word Mode</button>
             <div id="wordByWord" class="word-by-word" style="display:none;">
@@ -522,14 +523,18 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             const audio = document.getElementById('audio');
             const canvas = document.getElementById('waveform');
             const fallback = document.getElementById('waveformFallback');
+            const debug = document.getElementById('debugMsg');
+
+            debug.textContent = 'Initializing audio...';
 
             // CRITICAL: Unlock/resume AudioContext INSIDE the gesture handler (double-resume pattern)
             await unlockAudio();
+            debug.textContent = 'AudioContext unlocked';
 
             // Resume again right before play (iOS quirk)
             if (audioContext && audioContext.state === 'suspended') {
                 await audioContext.resume();
-                console.log('AudioContext resumed again before play');
+                debug.textContent = 'AudioContext resumed (double-resume)';
             }
 
             // Try to connect Web Audio API (with fallback)
@@ -540,9 +545,9 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                     analyser.connect(audioContext.destination);
                     isAudioConnected = true;
                     canvas.style.display = 'block';
-                    console.log('Web Audio API connected successfully');
+                    debug.textContent = '✓ Web Audio API connected!';
                 } catch (e) {
-                    console.warn('Web Audio unavailable, using CSS fallback:', e);
+                    debug.textContent = '⚠️ Using CSS fallback: ' + e.message;
                     // Ensure fallback shows
                     fallback.style.display = 'flex';
                     fallback.classList.add('active');
