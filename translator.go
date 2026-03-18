@@ -288,62 +288,6 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
         #playBtn:hover {
             background: #1976D2;
         }
-        canvas {
-            width: 100%;
-            height: 80px;
-            margin: 15px 0;
-            background: #f0f0f0;
-            border-radius: 8px;
-        }
-        .waveform-fallback {
-            width: 100%;
-            height: 80px;
-            margin: 15px 0;
-            background: #f0f0f0;
-            border-radius: 8px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-        }
-        .waveform-fallback.active {
-            display: flex;
-        }
-        .wave-line {
-            width: 90%;
-            height: 4px;
-            background: #4CAF50;
-            position: relative;
-            border-radius: 2px;
-            animation: vibrate 0.1s ease-in-out infinite;
-            box-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
-        }
-        .wave-line::before,
-        .wave-line::after {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 4px;
-            background: #4CAF50;
-            opacity: 0.5;
-            border-radius: 2px;
-        }
-        .wave-line::before {
-            top: -8px;
-            animation: vibrate 0.15s ease-in-out infinite;
-        }
-        .wave-line::after {
-            top: 8px;
-            animation: vibrate 0.12s ease-in-out infinite reverse;
-        }
-        @keyframes vibrate {
-            0% { transform: translateY(0) scaleY(1); }
-            25% { transform: translateY(-3px) scaleY(1.2); }
-            50% { transform: translateY(0) scaleY(0.8); }
-            75% { transform: translateY(3px) scaleY(1.2); }
-            100% { transform: translateY(0) scaleY(1); }
-        }
         .word-by-word {
             margin-top: 15px;
             padding: 15px;
@@ -399,11 +343,6 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             <h3>Translation:</h3>
             <p id="translation"></p>
             <p id="pinyin"></p>
-            <canvas id="waveform"></canvas>
-            <div id="waveformFallback" class="waveform-fallback">
-                <div class="wave-line"></div>
-            </div>
-            <div id="debugMsg" style="font-size: 12px; color: #999; margin: 10px 0;"></div>
             <button id="playBtn">🔊 Play Pronunciation</button>
             <button id="toggleWordMode">📖 Word-by-Word Mode</button>
             <div id="wordByWord" class="word-by-word" style="display:none;">
@@ -419,32 +358,11 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
     <script>
         let audioUrl = '';
         let translationData = null;
-        let audioContext = null;
-        let analyser = null;
-        let animationId = null;
-        let audioSource = null;
-        let isAudioConnected = false;
 
         // Word-by-word mode
         let chineseChars = [];
         let pinyinWords = [];
         let currentWordIndex = 0;
-
-        // Unlock audio context on first user interaction (critical for mobile)
-        async function unlockAudio() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-            }
-            if (audioContext.state === 'suspended') {
-                await audioContext.resume();
-            }
-        }
-
-        // Listen for first touch/click to unlock audio
-        document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
-        document.addEventListener('click', unlockAudio, { once: true, passive: true });
 
         async function translate() {
             const text = document.getElementById('input').value;
@@ -472,188 +390,10 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             document.getElementById('wordByWord').style.display = 'none';
         }
 
-
-        function drawWaveform() {
-            const canvas = document.getElementById('waveform');
-            if (!canvas) {
-                console.error('Canvas not found');
-                return;
-            }
-
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                console.error('Canvas context is null');
-                return;
-            }
-
-            // Set canvas size properly
-            const rect = canvas.getBoundingClientRect();
-            if (rect.width === 0) {
-                console.error('Canvas has zero width');
-                return;
-            }
-            canvas.width = rect.width;
-            canvas.height = 80;
-
-            if (!analyser) {
-                console.error('Analyser is null');
-                return;
-            }
-
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-
-            console.log('Starting waveform draw loop, bufferLength:', bufferLength);
-
-            let frameCount = 0;
-            let maxValue = 0;
-
-            function draw() {
-                if (!analyser || !ctx || !canvas) return;
-
-                animationId = requestAnimationFrame(draw);
-                analyser.getByteFrequencyData(dataArray);
-
-                frameCount++;
-
-                // Clear canvas
-                ctx.fillStyle = '#f0f0f0';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                // Draw bars
-                const barWidth = (canvas.width / bufferLength) * 2.5;
-                let x = 0;
-                let hasData = false;
-                let currentMax = 0;
-
-                for (let i = 0; i < bufferLength; i++) {
-                    if (dataArray[i] > currentMax) currentMax = dataArray[i];
-                    if (dataArray[i] > maxValue) maxValue = dataArray[i];
-
-                    const barHeight = Math.max((dataArray[i] / 255) * canvas.height * 0.8, 5); // Minimum 5px height
-
-                    if (dataArray[i] > 0) hasData = true;
-
-                    // Create gradient for each bar
-                    const gradient = ctx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
-                    gradient.addColorStop(0, '#4CAF50');
-                    gradient.addColorStop(1, '#81C784');
-
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
-                    x += barWidth;
-                }
-
-                // Debug: show data info
-                ctx.fillStyle = hasData ? 'green' : 'red';
-                ctx.font = '10px Arial';
-                ctx.fillText('Max: ' + currentMax + ' (ever: ' + maxValue + ') Frame: ' + frameCount, 5, 15);
-
-                // Log every 30 frames
-                if (frameCount % 30 === 0) {
-                    console.log('Frame ' + frameCount + ': currentMax=' + currentMax + ', maxValue=' + maxValue + ', hasData=' + hasData);
-                }
-            }
-
-            draw();
-        }
-
         async function playAudio() {
             const audio = document.getElementById('audio');
-            const canvas = document.getElementById('waveform');
-            const fallback = document.getElementById('waveformFallback');
-            const debug = document.getElementById('debugMsg');
-
-            debug.textContent = 'Initializing audio...';
-
-            // CRITICAL: Unlock/resume AudioContext INSIDE the gesture handler (double-resume pattern)
-            await unlockAudio();
-            debug.textContent = 'AudioContext unlocked';
-
-            // Resume again right before play (iOS quirk)
-            if (audioContext && audioContext.state === 'suspended') {
-                await audioContext.resume();
-                debug.textContent = 'AudioContext resumed (double-resume)';
-            }
-
-            // Stop previous animation
-            if (animationId) {
-                cancelAnimationFrame(animationId);
-            }
-
-            // Try to connect Web Audio API on VERY FIRST play only (before any src is set)
-            if (!isAudioConnected && audioContext) {
-                try {
-                    console.log('Audio element src before connection:', audio.src);
-                    console.log('Audio element readyState:', audio.readyState);
-
-                    audioSource = audioContext.createMediaElementSource(audio);
-                    audioSource.connect(analyser);
-                    analyser.connect(audioContext.destination);
-                    isAudioConnected = true;
-                    fallback.style.display = 'none'; // Hide CSS fallback
-                    debug.textContent = '✓ Web Audio API connected!';
-                    console.log('Media source created and connected');
-                    console.log('Analyser fftSize:', analyser.fftSize);
-                    console.log('Analyser frequencyBinCount:', analyser.frequencyBinCount);
-                } catch (e) {
-                    debug.textContent = '⚠️ Using CSS fallback: ' + e.message;
-                    console.error('Web Audio connection failed:', e);
-                    // Ensure fallback shows
-                    fallback.style.display = 'flex';
-                    fallback.classList.add('active');
-                }
-            }
-
-            // NOW set audio source (after Web Audio connection is made)
             audio.src = audioUrl;
-            console.log('Set audio.src to:', audioUrl);
-
-            try {
-                await audio.play();
-                console.log('Audio playing, audioContext.state:', audioContext ? audioContext.state : 'no context');
-
-                // Draw a test pattern first to verify canvas works
-                const testCanvas = document.getElementById('waveform');
-                const testCtx = testCanvas.getContext('2d');
-                if (testCtx) {
-                    testCanvas.width = testCanvas.offsetWidth || 300;
-                    testCanvas.height = 80;
-                    testCtx.fillStyle = '#4CAF50';
-                    testCtx.fillRect(0, 0, testCanvas.width, testCanvas.height);
-                    testCtx.fillStyle = 'white';
-                    testCtx.font = '20px Arial';
-                    testCtx.fillText('CANVAS TEST', 10, 40);
-                    console.log('Canvas test pattern drawn');
-                }
-
-                // Start real-time waveform if Web Audio is connected
-                if (analyser && isAudioConnected) {
-                    setTimeout(() => drawWaveform(), 100); // Small delay
-                    console.log('Drawing waveform');
-                } else {
-                    // Use CSS fallback
-                    fallback.style.display = 'flex';
-                    fallback.classList.add('active');
-                    console.log('Using CSS fallback');
-                }
-            } catch (e) {
-                console.error('Audio play failed:', e);
-            }
-
-            // Clean up when audio ends
-            audio.onended = () => {
-                console.log('Audio ended');
-                if (animationId) {
-                    cancelAnimationFrame(animationId);
-                }
-                if (canvas) {
-                    const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = '#f0f0f0';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                }
-                fallback.classList.remove('active');
-            };
+            await audio.play();
         }
 
         function toggleWordMode() {
