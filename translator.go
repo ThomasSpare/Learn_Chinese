@@ -294,7 +294,6 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             margin: 15px 0;
             background: #f0f0f0;
             border-radius: 8px;
-            display: none;
         }
         .waveform-fallback {
             width: 100%;
@@ -544,7 +543,7 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                     audioSource.connect(analyser);
                     analyser.connect(audioContext.destination);
                     isAudioConnected = true;
-                    canvas.style.display = 'block';
+                    fallback.style.display = 'none'; // Hide CSS fallback
                     debug.textContent = '✓ Web Audio API connected!';
                 } catch (e) {
                     debug.textContent = '⚠️ Using CSS fallback: ' + e.message;
