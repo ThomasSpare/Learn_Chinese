@@ -547,11 +547,11 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                 // Debug: show data info
                 ctx.fillStyle = hasData ? 'green' : 'red';
                 ctx.font = '10px Arial';
-                ctx.fillText(`Max: ${currentMax} (ever: ${maxValue}) Frame: ${frameCount}`, 5, 15);
+                ctx.fillText('Max: ' + currentMax + ' (ever: ' + maxValue + ') Frame: ' + frameCount, 5, 15);
 
                 // Log every 30 frames
                 if (frameCount % 30 === 0) {
-                    console.log(`Frame ${frameCount}: currentMax=${currentMax}, maxValue=${maxValue}, hasData=${hasData}`);
+                    console.log('Frame ' + frameCount + ': currentMax=' + currentMax + ', maxValue=' + maxValue + ', hasData=' + hasData);
                 }
             }
 
