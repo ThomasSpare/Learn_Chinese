@@ -2,7 +2,7 @@
 
 A Go-based web application for learning Chinese with English-to-Chinese translation, pinyin pronunciation, and audio playback.
 
-![Chinese Translator Demo](static/images/IMG_5617.jpeg)
+<img src="static/images/IMG_5617.jpeg" alt="Chinese Translator Demo" width="300">
 
 ## Features
 
