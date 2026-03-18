@@ -202,24 +202,112 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
 	html := `<!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chinese Translator</title>
     <style>
-        body { font-family: , sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; background: #3209ba; border-radius: 10px; }
-        textarea { width: 100%; height: 100px; margin: 10px 0; padding: 10px; }
-        button { background: #4CAF50; color: white; padding: 10px 20px; border: none; cursor: pointer; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            color: #333;
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            margin: 10px 0;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        button {
+            width: 100%;
+            background: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
         button:hover { background: #45a049; }
-        .result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; }
+        button:active { transform: scale(0.98); }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .result h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        #translation {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+            word-wrap: break-word;
+        }
+        #pinyin {
+            color: #666;
+            font-style: italic;
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        #playBtn {
+            margin-top: 15px;
+            background: #2196F3;
+        }
+        #playBtn:hover {
+            background: #1976D2;
+        }
+        @media (max-width: 640px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            h1 { font-size: 20px; }
+            #translation { font-size: 28px; }
+            #pinyin { font-size: 16px; }
+        }
     </style>
 </head>
 <body>
-    <h1>Chinese Translator</h1>
-    <textarea id="input" placeholder="Enter English text..."></textarea>
-    <button id="translateBtn">Translate & Pronounce</button>
-    <div id="result" class="result" style="display:none;">
-        <h3>Translation:</h3>
-        <p id="translation" style="font-size: 34px; font-weight: bold;"></p>
-        <p id="pinyin" style="color: #666; font-style: italic;"></p>
-        <button id="playBtn">🔊 Play Pronunciation</button>
+    <div class="container">
+        <h1>🇨🇳 Chinese Translator</h1>
+        <textarea id="input" placeholder="Enter English text..."></textarea>
+        <button id="translateBtn">Translate & Pronounce</button>
+        <div id="result" class="result" style="display:none;">
+            <h3>Translation:</h3>
+            <p id="translation"></p>
+            <p id="pinyin"></p>
+            <button id="playBtn">🔊 Play Pronunciation</button>
+        </div>
     </div>
     <audio id="audio" style="display:none;"></audio>
 
