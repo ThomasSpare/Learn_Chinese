@@ -288,12 +288,56 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
         #playBtn:hover {
             background: #1976D2;
         }
+        canvas {
+            width: 100%;
+            height: 80px;
+            margin: 15px 0;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+        .word-by-word {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 8px;
+        }
+        .word-display {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            min-height: 80px;
+            color: #2196F3;
+        }
+        .word-pinyin {
+            font-size: 24px;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+        #nextWordBtn {
+            background: #FF9800;
+            margin-top: 10px;
+        }
+        #nextWordBtn:hover {
+            background: #F57C00;
+        }
+        #toggleWordMode {
+            background: #9C27B0;
+            margin-top: 10px;
+        }
+        #toggleWordMode:hover {
+            background: #7B1FA2;
+        }
         @media (max-width: 640px) {
             body { padding: 10px; }
             .container { padding: 15px; }
             h1 { font-size: 20px; }
             #translation { font-size: 28px; }
             #pinyin { font-size: 16px; }
+            .word-display { font-size: 36px; }
+            .word-pinyin { font-size: 20px; }
         }
     </style>
 </head>
@@ -306,13 +350,29 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             <h3>Translation:</h3>
             <p id="translation"></p>
             <p id="pinyin"></p>
+            <canvas id="waveform"></canvas>
             <button id="playBtn">🔊 Play Pronunciation</button>
+            <button id="toggleWordMode">📖 Word-by-Word Mode</button>
+            <div id="wordByWord" class="word-by-word" style="display:none;">
+                <div class="word-display" id="currentWord"></div>
+                <div class="word-pinyin" id="currentPinyin"></div>
+                <button id="nextWordBtn">Next Word →</button>
+            </div>
         </div>
     </div>
     <audio id="audio" style="display:none;"></audio>
 
     <script>
         let audioUrl = '';
+        let translationData = null;
+        let audioContext = null;
+        let analyser = null;
+        let animationId = null;
+
+        // Word-by-word mode
+        let chineseChars = [];
+        let pinyinWords = [];
+        let currentWordIndex = 0;
 
         async function translate() {
             const text = document.getElementById('input').value;
@@ -325,21 +385,128 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             });
 
             const data = await response.json();
+            translationData = data;
             document.getElementById('translation').textContent = data.translation;
             document.getElementById('pinyin').textContent = data.pinyin ? 'Pronunciation: ' + data.pinyin : '';
             document.getElementById('result').style.display = 'block';
             audioUrl = data.audioUrl;
+
+            // Prepare word-by-word data
+            chineseChars = data.translation.split('');
+            pinyinWords = data.pinyin ? data.pinyin.split(' ') : [];
+            currentWordIndex = 0;
+
+            // Reset word mode
+            document.getElementById('wordByWord').style.display = 'none';
+        }
+
+        function setupAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+            }
+        }
+
+        function drawWaveform() {
+            const canvas = document.getElementById('waveform');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.offsetWidth;
+            const height = canvas.height = canvas.offsetHeight;
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            function draw() {
+                animationId = requestAnimationFrame(draw);
+                analyser.getByteFrequencyData(dataArray);
+
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(0, 0, width, height);
+
+                const barWidth = (width / bufferLength) * 2.5;
+                let x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    const barHeight = (dataArray[i] / 255) * height * 0.8;
+                    const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height);
+                    gradient.addColorStop(0, '#4CAF50');
+                    gradient.addColorStop(1, '#81C784');
+
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+                    x += barWidth + 1;
+                }
+            }
+
+            draw();
         }
 
         function playAudio() {
+            setupAudioContext();
+
             const audio = document.getElementById('audio');
             audio.src = audioUrl;
+
+            const source = audioContext.createMediaElementSource(audio);
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
+
             audio.play();
+            drawWaveform();
+
+            audio.onended = () => {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+            };
+        }
+
+        function toggleWordMode() {
+            const wordByWord = document.getElementById('wordByWord');
+            if (wordByWord.style.display === 'none') {
+                wordByWord.style.display = 'block';
+                currentWordIndex = 0;
+                showCurrentWord();
+            } else {
+                wordByWord.style.display = 'none';
+            }
+        }
+
+        function showCurrentWord() {
+            if (currentWordIndex >= chineseChars.length) {
+                document.getElementById('currentWord').textContent = '✓ Complete!';
+                document.getElementById('currentPinyin').textContent = '';
+                return;
+            }
+
+            const char = chineseChars[currentWordIndex];
+            const pinyin = pinyinWords[currentWordIndex] || '';
+
+            document.getElementById('currentWord').textContent = char;
+            document.getElementById('currentPinyin').textContent = pinyin;
+
+            // Auto-play pronunciation for this character
+            playCharacterAudio(char);
+        }
+
+        async function playCharacterAudio(char) {
+            const audio = document.getElementById('audio');
+            const charUrl = '/pronounce?text=' + encodeURIComponent(char) + '&lang=zh-CN';
+            audio.src = charUrl;
+            audio.play();
+        }
+
+        function nextWord() {
+            currentWordIndex++;
+            showCurrentWord();
         }
 
         // Add event listeners after DOM loads
         document.getElementById('translateBtn').addEventListener('click', translate);
         document.getElementById('playBtn').addEventListener('click', playAudio);
+        document.getElementById('toggleWordMode').addEventListener('click', toggleWordMode);
+        document.getElementById('nextWordBtn').addEventListener('click', nextWord);
     </script>
 </body>
 </html>`
