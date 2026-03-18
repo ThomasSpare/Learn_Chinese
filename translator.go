@@ -313,27 +313,29 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
         }
         .wave-line {
             width: 90%;
-            height: 3px;
+            height: 4px;
             background: #4CAF50;
             position: relative;
+            border-radius: 2px;
             animation: vibrate 0.1s ease-in-out infinite;
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
         }
         .wave-line::before,
         .wave-line::after {
             content: '';
             position: absolute;
             width: 100%;
-            height: 3px;
+            height: 4px;
             background: #4CAF50;
-            opacity: 0.6;
+            opacity: 0.5;
+            border-radius: 2px;
         }
         .wave-line::before {
-            top: -6px;
+            top: -8px;
             animation: vibrate 0.15s ease-in-out infinite;
         }
         .wave-line::after {
-            top: 6px;
+            top: 8px;
             animation: vibrate 0.12s ease-in-out infinite reverse;
         }
         @keyframes vibrate {
