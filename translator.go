@@ -581,17 +581,9 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                 cancelAnimationFrame(animationId);
             }
 
-            // Set audio source
-            audio.src = audioUrl;
-
-            // Try to connect Web Audio API on first play only
+            // Try to connect Web Audio API on VERY FIRST play only (before any src is set)
             if (!isAudioConnected && audioContext) {
                 try {
-                    // Load audio first for iOS
-                    audio.load();
-                    // Wait for iOS to register the audio element
-                    await new Promise(resolve => setTimeout(resolve, 100));
-
                     audioSource = audioContext.createMediaElementSource(audio);
                     audioSource.connect(analyser);
                     analyser.connect(audioContext.destination);
@@ -607,6 +599,9 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                     fallback.classList.add('active');
                 }
             }
+
+            // NOW set audio source (after Web Audio connection is made)
+            audio.src = audioUrl;
 
             try {
                 await audio.play();
