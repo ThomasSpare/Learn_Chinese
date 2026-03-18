@@ -361,6 +361,7 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
         </div>
     </div>
     <audio id="audio" style="display:none;"></audio>
+    <audio id="wordAudio" style="display:none;"></audio>
 
     <script>
         let audioUrl = '';
@@ -368,6 +369,8 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
         let audioContext = null;
         let analyser = null;
         let animationId = null;
+        let audioSource = null;
+        let isAudioConnected = false;
 
         // Word-by-word mode
         let chineseChars = [];
@@ -446,12 +449,21 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             setupAudioContext();
 
             const audio = document.getElementById('audio');
+
+            // Only create source once
+            if (!isAudioConnected) {
+                audioSource = audioContext.createMediaElementSource(audio);
+                audioSource.connect(analyser);
+                analyser.connect(audioContext.destination);
+                isAudioConnected = true;
+            }
+
+            // Stop previous animation
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+
             audio.src = audioUrl;
-
-            const source = audioContext.createMediaElementSource(audio);
-            source.connect(analyser);
-            analyser.connect(audioContext.destination);
-
             audio.play();
             drawWaveform();
 
@@ -491,10 +503,16 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
         }
 
         async function playCharacterAudio(char) {
-            const audio = document.getElementById('audio');
+            const audio = document.getElementById('wordAudio');
             const charUrl = '/pronounce?text=' + encodeURIComponent(char) + '&lang=zh-CN';
             audio.src = charUrl;
-            audio.play();
+
+            // Ensure we wait for the audio to be ready
+            try {
+                await audio.play();
+            } catch (e) {
+                console.log('Audio play failed:', e);
+            }
         }
 
         function nextWord() {
