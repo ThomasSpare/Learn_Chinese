@@ -584,6 +584,9 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             // Try to connect Web Audio API on VERY FIRST play only (before any src is set)
             if (!isAudioConnected && audioContext) {
                 try {
+                    console.log('Audio element src before connection:', audio.src);
+                    console.log('Audio element readyState:', audio.readyState);
+
                     audioSource = audioContext.createMediaElementSource(audio);
                     audioSource.connect(analyser);
                     analyser.connect(audioContext.destination);
@@ -591,6 +594,8 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                     fallback.style.display = 'none'; // Hide CSS fallback
                     debug.textContent = '✓ Web Audio API connected!';
                     console.log('Media source created and connected');
+                    console.log('Analyser fftSize:', analyser.fftSize);
+                    console.log('Analyser frequencyBinCount:', analyser.frequencyBinCount);
                 } catch (e) {
                     debug.textContent = '⚠️ Using CSS fallback: ' + e.message;
                     console.error('Web Audio connection failed:', e);
@@ -602,10 +607,11 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
 
             // NOW set audio source (after Web Audio connection is made)
             audio.src = audioUrl;
+            console.log('Set audio.src to:', audioUrl);
 
             try {
                 await audio.play();
-                console.log('Audio playing');
+                console.log('Audio playing, audioContext.state:', audioContext ? audioContext.state : 'no context');
 
                 // Draw a test pattern first to verify canvas works
                 const testCanvas = document.getElementById('waveform');
