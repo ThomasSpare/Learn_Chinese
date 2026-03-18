@@ -583,9 +583,23 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                 await audio.play();
                 console.log('Audio playing');
 
+                // Draw a test pattern first to verify canvas works
+                const testCanvas = document.getElementById('waveform');
+                const testCtx = testCanvas.getContext('2d');
+                if (testCtx) {
+                    testCanvas.width = testCanvas.offsetWidth || 300;
+                    testCanvas.height = 80;
+                    testCtx.fillStyle = '#4CAF50';
+                    testCtx.fillRect(0, 0, testCanvas.width, testCanvas.height);
+                    testCtx.fillStyle = 'white';
+                    testCtx.font = '20px Arial';
+                    testCtx.fillText('CANVAS TEST', 10, 40);
+                    console.log('Canvas test pattern drawn');
+                }
+
                 // Start real-time waveform if Web Audio is connected
                 if (analyser && isAudioConnected) {
-                    drawWaveform();
+                    setTimeout(() => drawWaveform(), 100); // Small delay
                     console.log('Drawing waveform');
                 } else {
                     // Use CSS fallback
