@@ -523,9 +523,13 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             const canvas = document.getElementById('waveform');
             const fallback = document.getElementById('waveformFallback');
 
-            // Ensure audio context is ready (resume if suspended)
+            // CRITICAL: Unlock/resume AudioContext INSIDE the gesture handler (double-resume pattern)
+            await unlockAudio();
+
+            // Resume again right before play (iOS quirk)
             if (audioContext && audioContext.state === 'suspended') {
                 await audioContext.resume();
+                console.log('AudioContext resumed again before play');
             }
 
             // Try to connect Web Audio API (with fallback)
@@ -539,6 +543,8 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                     console.log('Web Audio API connected successfully');
                 } catch (e) {
                     console.warn('Web Audio unavailable, using CSS fallback:', e);
+                    // Ensure fallback shows
+                    fallback.style.display = 'flex';
                     fallback.classList.add('active');
                 }
             }
@@ -553,13 +559,17 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
 
             try {
                 await audio.play();
+                console.log('Audio playing');
 
                 // Start real-time waveform if Web Audio is connected
                 if (analyser && isAudioConnected) {
                     drawWaveform();
+                    console.log('Drawing waveform');
                 } else {
                     // Use CSS fallback
+                    fallback.style.display = 'flex';
                     fallback.classList.add('active');
+                    console.log('Using CSS fallback');
                 }
             } catch (e) {
                 console.error('Audio play failed:', e);
@@ -567,6 +577,7 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
 
             // Clean up when audio ends
             audio.onended = () => {
+                console.log('Audio ended');
                 if (animationId) {
                     cancelAnimationFrame(animationId);
                 }
