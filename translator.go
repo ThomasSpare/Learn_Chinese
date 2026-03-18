@@ -503,13 +503,18 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
 
-            console.log('Starting waveform draw loop');
+            console.log('Starting waveform draw loop, bufferLength:', bufferLength);
+
+            let frameCount = 0;
+            let maxValue = 0;
 
             function draw() {
                 if (!analyser || !ctx || !canvas) return;
 
                 animationId = requestAnimationFrame(draw);
                 analyser.getByteFrequencyData(dataArray);
+
+                frameCount++;
 
                 // Clear canvas
                 ctx.fillStyle = '#f0f0f0';
@@ -519,8 +524,12 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                 const barWidth = (canvas.width / bufferLength) * 2.5;
                 let x = 0;
                 let hasData = false;
+                let currentMax = 0;
 
                 for (let i = 0; i < bufferLength; i++) {
+                    if (dataArray[i] > currentMax) currentMax = dataArray[i];
+                    if (dataArray[i] > maxValue) maxValue = dataArray[i];
+
                     const barHeight = Math.max((dataArray[i] / 255) * canvas.height * 0.8, 5); // Minimum 5px height
 
                     if (dataArray[i] > 0) hasData = true;
@@ -535,11 +544,14 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                     x += barWidth;
                 }
 
-                // Debug: show if we're getting data
-                if (!hasData) {
-                    ctx.fillStyle = 'red';
-                    ctx.font = '12px Arial';
-                    ctx.fillText('No audio data', 10, 20);
+                // Debug: show data info
+                ctx.fillStyle = hasData ? 'green' : 'red';
+                ctx.font = '10px Arial';
+                ctx.fillText(`Max: ${currentMax} (ever: ${maxValue}) Frame: ${frameCount}`, 5, 15);
+
+                // Log every 30 frames
+                if (frameCount % 30 === 0) {
+                    console.log(`Frame ${frameCount}: currentMax=${currentMax}, maxValue=${maxValue}, hasData=${hasData}`);
                 }
             }
 
