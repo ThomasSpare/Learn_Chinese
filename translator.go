@@ -457,12 +457,24 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
         }
 
         async function playAudio() {
-            setupAudioContext();
-
             const audio = document.getElementById('audio');
 
-            // Only create source once
-            if (!isAudioConnected) {
+            // Setup audio context on first user interaction
+            if (!audioContext) {
+                setupAudioContext();
+            }
+
+            // Resume audio context if needed (mobile requirement)
+            if (audioContext && audioContext.state === 'suspended') {
+                try {
+                    await audioContext.resume();
+                } catch (e) {
+                    console.error('Failed to resume audio context:', e);
+                }
+            }
+
+            // Connect audio source once
+            if (!isAudioConnected && audioContext) {
                 try {
                     audioSource = audioContext.createMediaElementSource(audio);
                     audioSource.connect(analyser);
@@ -470,7 +482,7 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                     isAudioConnected = true;
                 } catch (e) {
                     console.error('Failed to create audio source:', e);
-                    // If fails, just play without waveform
+                    // Fall back to regular audio playback
                     audio.src = audioUrl;
                     await audio.play();
                     return;
@@ -482,20 +494,27 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
                 cancelAnimationFrame(animationId);
             }
 
-            // Resume audio context if suspended
-            if (audioContext.state === 'suspended') {
-                await audioContext.resume();
+            // Set audio source and play
+            audio.src = audioUrl;
+
+            try {
+                await audio.play();
+
+                // Start waveform visualization
+                if (analyser && isAudioConnected) {
+                    drawWaveform();
+                }
+            } catch (e) {
+                console.error('Failed to play audio:', e);
             }
 
-            audio.src = audioUrl;
-            await audio.play();
-            drawWaveform();
-
+            // Clear waveform when audio ends
             audio.onended = () => {
                 if (animationId) {
                     cancelAnimationFrame(animationId);
-                    // Clear canvas
-                    const canvas = document.getElementById('waveform');
+                }
+                const canvas = document.getElementById('waveform');
+                if (canvas) {
                     const ctx = canvas.getContext('2d');
                     ctx.fillStyle = '#f0f0f0';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
