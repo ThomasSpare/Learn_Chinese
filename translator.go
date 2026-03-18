@@ -310,12 +310,6 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             font-style: italic;
             margin-bottom: 10px;
         }
-        .word-english {
-            font-size: 20px;
-            text-align: center;
-            color: #999;
-            margin-bottom: 20px;
-        }
         #nextWordBtn {
             background: #FF9800;
             margin-top: 10px;
@@ -356,7 +350,6 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             <div id="wordByWord" class="word-by-word" style="display:none;">
                 <div class="word-display" id="currentWord"></div>
                 <div class="word-pinyin" id="currentPinyin"></div>
-                <div class="word-english" id="currentEnglish"></div>
                 <button id="nextWordBtn">Next Word →</button>
             </div>
         </div>
@@ -372,7 +365,6 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
         // Word-by-word mode
         let chineseChars = [];
         let pinyinWords = [];
-        let englishWords = [];
         let currentWordIndex = 0;
 
         // Initialize WaveSurfer
@@ -411,7 +403,6 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             // Prepare word-by-word data
             chineseChars = data.translation.split('');
             pinyinWords = data.pinyin ? data.pinyin.split(' ') : [];
-            englishWords = text.split(''); // Split English input into characters/words
             currentWordIndex = 0;
 
             // Reset word mode
@@ -437,17 +428,14 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             if (currentWordIndex >= chineseChars.length) {
                 document.getElementById('currentWord').textContent = '✓ Complete!';
                 document.getElementById('currentPinyin').textContent = '';
-                document.getElementById('currentEnglish').textContent = '';
                 return;
             }
 
             const char = chineseChars[currentWordIndex];
             const pinyin = pinyinWords[currentWordIndex] || '';
-            const english = englishWords[currentWordIndex] || '';
 
             document.getElementById('currentWord').textContent = char;
             document.getElementById('currentPinyin').textContent = pinyin;
-            document.getElementById('currentEnglish').textContent = '(' + english + ')';
 
             // Auto-play pronunciation for this character
             playCharacterAudio(char);
