@@ -430,6 +430,22 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
         let pinyinWords = [];
         let currentWordIndex = 0;
 
+        // Unlock audio context on first user interaction (critical for mobile)
+        async function unlockAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+            }
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+        }
+
+        // Listen for first touch/click to unlock audio
+        document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
+        document.addEventListener('click', unlockAudio, { once: true, passive: true });
+
         async function translate() {
             const text = document.getElementById('input').value;
             if (!text) return;
@@ -456,13 +472,6 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
             document.getElementById('wordByWord').style.display = 'none';
         }
 
-        function setupAudioContext() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-            }
-        }
 
         function drawWaveform() {
             const canvas = document.getElementById('waveform');
@@ -511,24 +520,61 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
 
         async function playAudio() {
             const audio = document.getElementById('audio');
+            const canvas = document.getElementById('waveform');
             const fallback = document.getElementById('waveformFallback');
 
-            // Always use simple vibrating line animation for reliability
-            console.log('Starting audio playback...');
-            fallback.classList.add('active');
-            console.log('Waveform activated');
+            // Ensure audio context is ready (resume if suspended)
+            if (audioContext && audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
 
+            // Try to connect Web Audio API (with fallback)
+            if (!isAudioConnected && audioContext) {
+                try {
+                    audioSource = audioContext.createMediaElementSource(audio);
+                    audioSource.connect(analyser);
+                    analyser.connect(audioContext.destination);
+                    isAudioConnected = true;
+                    canvas.style.display = 'block';
+                    console.log('Web Audio API connected successfully');
+                } catch (e) {
+                    console.warn('Web Audio unavailable, using CSS fallback:', e);
+                    fallback.classList.add('active');
+                }
+            }
+
+            // Stop previous animation
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+
+            // Play audio
             audio.src = audioUrl;
 
             try {
                 await audio.play();
-                console.log('Audio playing');
+
+                // Start real-time waveform if Web Audio is connected
+                if (analyser && isAudioConnected) {
+                    drawWaveform();
+                } else {
+                    // Use CSS fallback
+                    fallback.classList.add('active');
+                }
             } catch (e) {
                 console.error('Audio play failed:', e);
             }
 
+            // Clean up when audio ends
             audio.onended = () => {
-                console.log('Audio ended');
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
                 fallback.classList.remove('active');
             };
         }
