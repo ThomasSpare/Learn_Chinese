@@ -510,69 +510,25 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
         async function playAudio() {
             const audio = document.getElementById('audio');
             const fallback = document.getElementById('waveformFallback');
-            const canvas = document.getElementById('waveform');
 
-            // Detect mobile
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            // Always use simple vibrating line animation for reliability
+            console.log('Starting audio playback...');
+            fallback.classList.add('active');
+            console.log('Waveform activated');
 
-            // Use CSS fallback on mobile, Web Audio API on desktop
-            if (isMobile) {
-                // Show CSS animated waveform
-                fallback.classList.add('active');
+            audio.src = audioUrl;
 
-                audio.src = audioUrl;
+            try {
                 await audio.play();
-
-                audio.onended = () => {
-                    fallback.classList.remove('active');
-                };
-            } else {
-                // Desktop: Use Web Audio API
-                if (!audioContext) {
-                    setupAudioContext();
-                }
-
-                if (audioContext && audioContext.state === 'suspended') {
-                    await audioContext.resume();
-                }
-
-                if (!isAudioConnected && audioContext) {
-                    try {
-                        audioSource = audioContext.createMediaElementSource(audio);
-                        audioSource.connect(analyser);
-                        analyser.connect(audioContext.destination);
-                        isAudioConnected = true;
-                        canvas.style.display = 'block';
-                    } catch (e) {
-                        console.error('Audio context failed, using fallback:', e);
-                        fallback.classList.add('active');
-                        audio.src = audioUrl;
-                        await audio.play();
-                        audio.onended = () => fallback.classList.remove('active');
-                        return;
-                    }
-                }
-
-                if (animationId) {
-                    cancelAnimationFrame(animationId);
-                }
-
-                audio.src = audioUrl;
-                await audio.play();
-
-                if (analyser && isAudioConnected) {
-                    drawWaveform();
-                }
-
-                audio.onended = () => {
-                    if (animationId) {
-                        cancelAnimationFrame(animationId);
-                    }
-                    const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = '#f0f0f0';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                };
+                console.log('Audio playing');
+            } catch (e) {
+                console.error('Audio play failed:', e);
             }
+
+            audio.onended = () => {
+                console.log('Audio ended');
+                fallback.classList.remove('active');
+            };
         }
 
         function toggleWordMode() {
